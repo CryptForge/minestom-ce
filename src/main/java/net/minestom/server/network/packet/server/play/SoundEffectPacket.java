@@ -1,7 +1,7 @@
 package net.minestom.server.network.packet.server.play;
 
 import net.kyori.adventure.sound.Sound.Source;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.network.NetworkBuffer;
 import net.minestom.server.network.packet.server.ServerPacket;
@@ -80,7 +80,7 @@ public record SoundEffectPacket(
             writer.write(STRING, soundName);
             writer.writeOptional(FLOAT, range);
         }
-        writer.write(VAR_INT, AdventurePacketConvertor.getSoundSourceValue(source));
+        writer.write(VAR_INT, AdventurePacketConverter.getSoundSourceValue(source));
         writer.write(INT, x * 8);
         writer.write(INT, y * 8);
         writer.write(INT, z * 8);

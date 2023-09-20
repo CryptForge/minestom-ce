@@ -17,7 +17,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.TitlePart;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.advancements.AdvancementTab;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.adventure.Localizable;
 import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.attribute.Attribute;
@@ -763,28 +763,28 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
     }
 
     public void playSound(@NotNull Sound sound, @NotNull Point point) {
-        sendPacket(AdventurePacketConvertor.createSoundPacket(sound, point.x(), point.y(), point.z()));
+        sendPacket(AdventurePacketConverter.createSoundPacket(sound, point.x(), point.y(), point.z()));
     }
 
     @Override
     public void playSound(@NotNull Sound sound, double x, double y, double z) {
-        sendPacket(AdventurePacketConvertor.createSoundPacket(sound, x, y, z));
+        sendPacket(AdventurePacketConverter.createSoundPacket(sound, x, y, z));
     }
 
     @Override
     public void playSound(@NotNull Sound sound, Sound.@NotNull Emitter emitter) {
         final ServerPacket packet;
         if (emitter == Sound.Emitter.self()) {
-            packet = AdventurePacketConvertor.createSoundPacket(sound, this);
+            packet = AdventurePacketConverter.createSoundPacket(sound, this);
         } else {
-            packet = AdventurePacketConvertor.createSoundPacket(sound, emitter);
+            packet = AdventurePacketConverter.createSoundPacket(sound, emitter);
         }
         sendPacket(packet);
     }
 
     @Override
     public void stopSound(@NotNull SoundStop stop) {
-        sendPacket(AdventurePacketConvertor.createSoundStopPacket(stop));
+        sendPacket(AdventurePacketConverter.createSoundStopPacket(stop));
     }
 
     /**
@@ -808,7 +808,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
 
     @Override
     public <T> void sendTitlePart(@NotNull TitlePart<T> part, @NotNull T value) {
-        sendPacket(AdventurePacketConvertor.createTitlePartPacket(part, value));
+        sendPacket(AdventurePacketConverter.createTitlePartPacket(part, value));
     }
 
     @Override

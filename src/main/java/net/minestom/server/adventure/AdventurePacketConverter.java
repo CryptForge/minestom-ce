@@ -10,7 +10,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import net.kyori.adventure.title.TitlePart;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.network.packet.server.ServerPacket;
@@ -20,11 +19,13 @@ import net.minestom.server.utils.TickUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Utility methods to convert adventure enums to their packet values.
  */
-public class AdventurePacketConvertor {
+public class AdventurePacketConverter {
     private static final Object2IntMap<NamedTextColor> NAMED_TEXT_COLOR_ID_MAP = new Object2IntArrayMap<>(16);
 
     static {
@@ -113,11 +114,16 @@ public class AdventurePacketConvertor {
         final SoundEvent minestomSound = SoundEvent.fromNamespaceId(sound.name().asString());
         if (minestomSound == null) {
             return new SoundEffectPacket(sound.name().asString(), null, sound.source(),
-                    new Vec(x, y, z), sound.volume(), sound.pitch(), 0);
+                    new Vec(x, y, z), sound.volume(), sound.pitch(), sound.seed().orElseGet(AdventurePacketConverter::generateSeed));
         } else {
             return new SoundEffectPacket(minestomSound, null, sound.source(),
-                    new Vec(x, y, z), sound.volume(), sound.pitch(), 0);
+                    new Vec(x, y, z), sound.volume(), sound.pitch(), sound.seed().orElseGet(AdventurePacketConverter::generateSeed));
         }
+    }
+
+    private static long generateSeed() {
+        final Random random = ThreadLocalRandom.current();
+        return random.nextLong();
     }
 
     /**

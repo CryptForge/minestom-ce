@@ -10,7 +10,7 @@ import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.TitlePart;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.Player;
 import net.minestom.server.message.ChatPosition;
@@ -74,7 +74,7 @@ public interface PacketGroupingAudience extends ForwardingAudience {
 
     @Override
     default <T> void sendTitlePart(@NotNull TitlePart<T> part, @NotNull T value) {
-        sendGroupedPacket(AdventurePacketConvertor.createTitlePartPacket(part, value));
+        sendGroupedPacket(AdventurePacketConverter.createTitlePartPacket(part, value));
     }
 
     @Override
@@ -108,13 +108,13 @@ public interface PacketGroupingAudience extends ForwardingAudience {
 
     @Override
     default void playSound(@NotNull Sound sound, double x, double y, double z) {
-        sendGroupedPacket(AdventurePacketConvertor.createSoundPacket(sound, x, y, z));
+        sendGroupedPacket(AdventurePacketConverter.createSoundPacket(sound, x, y, z));
     }
 
     @Override
     default void playSound(@NotNull Sound sound, Sound.@NotNull Emitter emitter) {
         if (emitter != Sound.Emitter.self()) {
-            sendGroupedPacket(AdventurePacketConvertor.createSoundPacket(sound, emitter));
+            sendGroupedPacket(AdventurePacketConverter.createSoundPacket(sound, emitter));
         } else {
             // if we're playing on self, we need to delegate to each audience member
             for (Audience audience : this.audiences()) {
@@ -125,7 +125,7 @@ public interface PacketGroupingAudience extends ForwardingAudience {
 
     @Override
     default void stopSound(@NotNull SoundStop stop) {
-        sendGroupedPacket(AdventurePacketConvertor.createSoundStopPacket(stop));
+        sendGroupedPacket(AdventurePacketConverter.createSoundStopPacket(stop));
     }
 
     @Override

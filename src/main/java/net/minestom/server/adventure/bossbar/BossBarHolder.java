@@ -3,7 +3,7 @@ package net.minestom.server.adventure.bossbar;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.Viewable;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.entity.Player;
 import net.minestom.server.network.packet.server.play.BossBarPacket;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +51,7 @@ final class BossBarHolder implements Viewable {
     }
 
     @NotNull BossBarPacket createFlagsUpdate(@NotNull Set<BossBar.Flag> newFlags) {
-        return new BossBarPacket(uuid, new BossBarPacket.UpdateFlagsAction(AdventurePacketConvertor.getBossBarFlagValue(newFlags)));
+        return new BossBarPacket(uuid, new BossBarPacket.UpdateFlagsAction(AdventurePacketConverter.getBossBarFlagValue(newFlags)));
     }
 
     @NotNull BossBarPacket createOverlayUpdate(@NotNull BossBar.Overlay overlay) {

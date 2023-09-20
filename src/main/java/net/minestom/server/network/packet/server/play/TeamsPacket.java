@@ -2,7 +2,7 @@ package net.minestom.server.network.packet.server.play;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.adventure.ComponentHolder;
 import net.minestom.server.network.NetworkBuffer;
 import net.minestom.server.network.packet.server.ComponentHoldingServerPacket;
@@ -80,7 +80,7 @@ public record TeamsPacket(String teamName, Action action) implements ComponentHo
             writer.write(BYTE, friendlyFlags);
             writer.write(STRING, nameTagVisibility.getIdentifier());
             writer.write(STRING, collisionRule.getIdentifier());
-            writer.write(VAR_INT, AdventurePacketConvertor.getNamedTextColorValue(teamColor));
+            writer.write(VAR_INT, AdventurePacketConverter.getNamedTextColorValue(teamColor));
             writer.write(COMPONENT, teamPrefix);
             writer.write(COMPONENT, teamSuffix);
             writer.writeCollection(STRING, entities);
@@ -141,7 +141,7 @@ public record TeamsPacket(String teamName, Action action) implements ComponentHo
             writer.write(BYTE, friendlyFlags);
             writer.write(STRING, nameTagVisibility.getIdentifier());
             writer.write(STRING, collisionRule.getIdentifier());
-            writer.write(VAR_INT, AdventurePacketConvertor.getNamedTextColorValue(teamColor));
+            writer.write(VAR_INT, AdventurePacketConverter.getNamedTextColorValue(teamColor));
             writer.write(COMPONENT, teamPrefix);
             writer.write(COMPONENT, teamSuffix);
         }

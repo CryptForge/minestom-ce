@@ -2,7 +2,7 @@ package net.minestom.server.network.packet.server.play;
 
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.minestom.server.adventure.AdventurePacketConvertor;
+import net.minestom.server.adventure.AdventurePacketConverter;
 import net.minestom.server.adventure.ComponentHolder;
 import net.minestom.server.network.NetworkBuffer;
 import net.minestom.server.network.packet.server.ComponentHoldingServerPacket;
@@ -61,7 +61,7 @@ public record BossBarPacket(@NotNull UUID uuid, @NotNull Action action) implemen
                             byte flags) implements Action, ComponentHolder<AddAction> {
         public AddAction(@NotNull BossBar bar) {
             this(bar.name(), bar.progress(), bar.color(), bar.overlay(),
-                    AdventurePacketConvertor.getBossBarFlagValue(bar.flags()));
+                    AdventurePacketConverter.getBossBarFlagValue(bar.flags()));
         }
 
         public AddAction(@NotNull NetworkBuffer reader) {
@@ -74,8 +74,8 @@ public record BossBarPacket(@NotNull UUID uuid, @NotNull Action action) implemen
         public void write(@NotNull NetworkBuffer writer) {
             writer.write(COMPONENT, title);
             writer.write(FLOAT, health);
-            writer.write(VAR_INT, AdventurePacketConvertor.getBossBarColorValue(color));
-            writer.write(VAR_INT, AdventurePacketConvertor.getBossBarOverlayValue(overlay));
+            writer.write(VAR_INT, AdventurePacketConverter.getBossBarColorValue(color));
+            writer.write(VAR_INT, AdventurePacketConverter.getBossBarOverlayValue(overlay));
             writer.write(BYTE, flags);
         }
 
@@ -168,8 +168,8 @@ public record BossBarPacket(@NotNull UUID uuid, @NotNull Action action) implemen
 
         @Override
         public void write(@NotNull NetworkBuffer writer) {
-            writer.write(VAR_INT, AdventurePacketConvertor.getBossBarColorValue(color));
-            writer.write(VAR_INT, AdventurePacketConvertor.getBossBarOverlayValue(overlay));
+            writer.write(VAR_INT, AdventurePacketConverter.getBossBarColorValue(color));
+            writer.write(VAR_INT, AdventurePacketConverter.getBossBarOverlayValue(overlay));
         }
 
         @Override
@@ -180,7 +180,7 @@ public record BossBarPacket(@NotNull UUID uuid, @NotNull Action action) implemen
 
     public record UpdateFlagsAction(byte flags) implements Action {
         public UpdateFlagsAction(@NotNull BossBar bar) {
-            this(AdventurePacketConvertor.getBossBarFlagValue(bar.flags()));
+            this(AdventurePacketConverter.getBossBarFlagValue(bar.flags()));
         }
 
         public UpdateFlagsAction(@NotNull NetworkBuffer reader) {
