@@ -2,6 +2,7 @@ package net.minestom.demo;
 
 import net.kyori.adventure.text.Component;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.adventure.MinestomAdventure;
 import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -132,6 +133,17 @@ public class PlayerInit {
 
                 event.getInstance().setBlock(event.getPosition(), block);
 
+            })
+            .addListener(PlayerBlockPlaceEvent.class, event -> {
+//                event.setDoBlockUpdates(false);
+            })
+            .addListener(PlayerBlockInteractEvent.class, event -> {
+                var block = event.getBlock();
+                var rawOpenProp = block.getProperty("open");
+                if (rawOpenProp == null) return;
+
+                block = block.withProperty("open", String.valueOf(!Boolean.parseBoolean(rawOpenProp)));
+                event.getInstance().setBlock(event.getBlockPosition(), block);
             });
 
     static {
@@ -159,6 +171,9 @@ public class PlayerInit {
     public static void init() {
         var eventHandler = MinecraftServer.getGlobalEventHandler();
         eventHandler.addChild(DEMO_NODE);
+
+        MinestomAdventure.AUTOMATIC_COMPONENT_TRANSLATION = true;
+        MinestomAdventure.COMPONENT_TRANSLATOR = (c, l) -> c;
 
         eventHandler.addListener(ServerTickMonitorEvent.class, event -> LAST_TICK.set(event.getTickMonitor()));
 

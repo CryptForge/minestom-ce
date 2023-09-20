@@ -283,7 +283,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                 "value", NBT.List(NBTType.TAG_Compound, damageTypes)
         )));
         final JoinGamePacket joinGamePacket = new JoinGamePacket(getEntityId(), false, gameMode, null,
-                List.of(dimensionType.getName().asString()), NBT.Compound(registry), dimensionType.toString(), dimensionType.getName().asString(),
+                List.of(), NBT.Compound(registry), dimensionType.toString(), spawnInstance.getDimensionName(),
                 0, 0, MinecraftServer.getChunkViewDistance(), MinecraftServer.getChunkViewDistance(),
                 false, true, false, levelFlat, deathLocation, portalCooldown);
         sendPacket(joinGamePacket);
@@ -313,8 +313,14 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         this.skin = skinInitEvent.getSkin();
         // FIXME: when using Geyser, this line remove the skin of the client
         PacketUtils.broadcastPacket(getAddPlayerToList());
+        
         for (var player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
-            if (player != this) sendPacket(player.getAddPlayerToList());
+            if (player != this) {
+                sendPacket(player.getAddPlayerToList());
+                if (player.displayName != null) {
+                    sendPacket(new PlayerInfoUpdatePacket(PlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME, player.infoEntry()));
+                }
+            }
         }
 
         //Teams
@@ -480,7 +486,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         setOnFire(false);
         refreshHealth();
 
-        sendPacket(new RespawnPacket(getDimensionType().toString(), getDimensionType().getName().asString(),
+        sendPacket(new RespawnPacket(getDimensionType().toString(), instance.getDimensionName(),
                 0, gameMode, gameMode, false, levelFlat, true, deathLocation, portalCooldown));
 
         PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(this);
@@ -518,6 +524,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * Sends necessary packets to synchronize player data after a {@link RespawnPacket}
      */
     private void refreshClientStateAfterRespawn() {
+        sendPacket(new ServerDifficultyPacket(MinecraftServer.getDifficulty(), false));
         sendPacket(new UpdateHealthPacket(this.getHealth(), food, foodSaturation));
         sendPacket(new SetExperiencePacket(exp, level, 0));
         triggerStatus((byte) (24 + permissionLevel)); // Set permission level
@@ -606,7 +613,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         }
         // Must update the player chunks
         chunkUpdateLimitChecker.clearHistory();
-        final boolean dimensionChange = !Objects.equals(dimensionType, instance.getDimensionType());
+        final boolean dimensionChange = currentInstance != null && !Objects.equals(currentInstance.getDimensionName(), instance.getDimensionName());
         final Consumer<Instance> runnable = (i) -> spawnPlayer(i, spawnPosition,
                 currentInstance == null, dimensionChange, true);
 
@@ -682,13 +689,13 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      */
     private void spawnPlayer(@NotNull Instance instance, @NotNull Pos spawnPosition,
                              boolean firstSpawn, boolean dimensionChange, boolean updateChunks) {
-        if (!firstSpawn) {
+        if (!firstSpawn && !dimensionChange) {
             // Player instance changed, clear current viewable collections
             if (updateChunks)
                 ChunkUtils.forChunksInRange(spawnPosition, MinecraftServer.getChunkViewDistance(), chunkRemover);
         }
 
-        if (dimensionChange) sendDimension(instance.getDimensionType());
+        if (dimensionChange) sendDimension(instance.getDimensionType(), instance.getDimensionName());
 
         super.setInstance(instance, spawnPosition);
 
@@ -706,14 +713,14 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                         (x, z) -> chunkQueue.add(ChunkUtils.getChunkIndex(x, z)));
                 var iter = chunkQueue.iterator();
                 Supplier<TaskSchedule> taskRunnable = () -> {
-                    for (int i = 0; i < 50; i++) {
+                    for (int i = 0; i < ChunkUtils.NEW_CHUNK_COUNT_PER_INTERVAL; i++) {
                         if (!iter.hasNext()) return TaskSchedule.stop();
 
                         var next = iter.nextLong();
                         chunkAdder.accept(ChunkUtils.getChunkCoordX(next), ChunkUtils.getChunkCoordZ(next));
                     }
 
-                    return TaskSchedule.tick(20);
+                    return TaskSchedule.tick(ChunkUtils.NEW_CHUNK_SEND_INTERVAL);
                 };
                 scheduler().submitTask(taskRunnable);
             } else {
@@ -723,8 +730,15 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
 
         synchronizePosition(true); // So the player doesn't get stuck
 
+        if (dimensionChange) {
+            sendPacket(new SpawnPositionPacket(spawnPosition, 0));
+            instance.getWorldBorder().init(this);
+            sendPacket(new TimeUpdatePacket(instance.getWorldAge(), instance.getTime()));
+        }
+
         if (dimensionChange || firstSpawn) {
             this.inventory.update();
+            sendPacket(new HeldItemChangePacket(heldSlot));
         }
 
         EventDispatcher.call(new PlayerSpawnEvent(this, instance, firstSpawn));
@@ -1024,7 +1038,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         final PlayerInfoRemovePacket removePlayerPacket = getRemovePlayerToList();
         final PlayerInfoUpdatePacket addPlayerPacket = getAddPlayerToList();
 
-        RespawnPacket respawnPacket = new RespawnPacket(getDimensionType().toString(), getDimensionType().getName().asString(),
+        RespawnPacket respawnPacket = new RespawnPacket(getDimensionType().toString(), instance.getDimensionName(),
                 0, gameMode, gameMode, false, levelFlat, true, deathLocation, portalCooldown);
 
         sendPacket(removePlayerPacket);
@@ -1358,8 +1372,18 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      * Changes the player {@link GameMode}
      *
      * @param gameMode the new player GameMode
+     * @return true if the gamemode was changed successfully, false otherwise (cancelled by event)
      */
-    public void setGameMode(@NotNull GameMode gameMode) {
+    public boolean setGameMode(@NotNull GameMode gameMode) {
+        PlayerGameModeChangeEvent playerGameModeChangeEvent = new PlayerGameModeChangeEvent(this, gameMode);
+        EventDispatcher.call(playerGameModeChangeEvent);
+        if (playerGameModeChangeEvent.isCancelled()) {
+            // Abort
+            return false;
+        }
+
+        gameMode = playerGameModeChangeEvent.getNewGameMode();
+
         this.gameMode = gameMode;
         // Condition to prevent sending the packets before spawning the player
         if (isActive()) {
@@ -1391,6 +1415,8 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         if (isActive()) {
             refreshAbilities();
         }
+
+        return true;
     }
 
     /**
@@ -1408,11 +1434,11 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      *
      * @param dimensionType the new player dimension
      */
-    protected void sendDimension(@NotNull DimensionType dimensionType) {
-        Check.argCondition(dimensionType.equals(getDimensionType()),
+    protected void sendDimension(@NotNull DimensionType dimensionType, @NotNull String dimensionName) {
+        Check.argCondition(instance.getDimensionName().equals(dimensionName),
                 "The dimension needs to be different than the current one!");
         this.dimensionType = dimensionType;
-        sendPacket(new RespawnPacket(dimensionType.toString(), getDimensionType().getName().asString(),
+        sendPacket(new RespawnPacket(dimensionType.toString(), dimensionName,
                 0, gameMode, gameMode, false, levelFlat, true, deathLocation, portalCooldown));
         refreshClientStateAfterRespawn();
     }
@@ -1463,13 +1489,6 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
      */
     public byte getHeldSlot() {
         return heldSlot;
-    }
-
-    public void setTeam(Team team) {
-        super.setTeam(team);
-        if (team != null) {
-            PacketUtils.broadcastPacket(team.createTeamsCreationPacket());
-        }
     }
 
     /**
@@ -2022,10 +2041,6 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
         connection.sendPacket(getEquipmentsPacket());
         if (hasPassenger()) {
             connection.sendPacket(getPassengersPacket());
-        }
-        // Team
-        if (this.getTeam() != null) {
-            connection.sendPacket(this.getTeam().createTeamsCreationPacket());
         }
         connection.sendPacket(new EntityHeadLookPacket(getEntityId(), position.yaw()));
     }
