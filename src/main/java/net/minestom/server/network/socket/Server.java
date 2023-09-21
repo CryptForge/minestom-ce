@@ -115,6 +115,10 @@ public final class Server {
         this.workers.forEach(worker -> worker.selector.wakeup());
     }
 
+    public void tick() {
+        this.workers.forEach(Worker::tick);
+    }
+
     @ApiStatus.Internal
     public @NotNull PacketProcessor packetProcessor() {
         return packetProcessor;

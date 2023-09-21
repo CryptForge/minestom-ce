@@ -269,6 +269,8 @@ final class ServerProcessImpl implements ServerProcess {
             // Flush all waiting packets
             PacketUtils.flush();
 
+            server().tick();
+
             // Monitoring
             {
                 final double acquisitionTimeMs = Acquirable.resetAcquiringTime() / 1e6D;
